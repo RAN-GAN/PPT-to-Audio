@@ -1,7 +1,45 @@
 from pptx import Presentation
 import pyttsx3
 import threading
-import time
+import tkinter as tk
+from tkinter import ttk
+
+class TTSController:
+    def __init__(self, text_to_speak):
+        self.text_to_speak = text_to_speak
+        self.pause_flag = threading.Event()
+        self.extraction_thread = None
+        self.speak_thread = None
+
+    def start(self):
+        self.extraction_thread = threading.Thread(target=lambda: print(self.text_to_speak))
+        self.speak_thread = threading.Thread(target=lambda: self._speak())
+
+        self.extraction_thread.start()
+        self.speak_thread.start()
+
+    def _speak(self):
+        bot = pyttsx3.init()
+        for text in self.text_to_speak.split('\n'):
+            if self.pause_flag.is_set():
+                while self.pause_flag.is_set():
+                    time.sleep(1)
+            bot.say(text)
+            bot.runAndWait()
+
+    def handle_pause(self):
+        self.pause_flag.set()
+        print("TTS paused")
+
+    def handle_resume(self):
+        self.pause_flag.clear()
+        print("TTS resumed")
+
+    def stop(self):
+        if self.extraction_thread:
+            self.extraction_thread.join()
+        if self.speak_thread:
+            self.speak_thread.join()
 
 def extract_text_from_ppt(ppt_file):
     presentation = Presentation(ppt_file)
@@ -13,47 +51,41 @@ def extract_text_from_ppt(ppt_file):
                 extracted_text += f"{shape.text}\n"
     return extracted_text
 
-def speak(text_to_speak, pause_flag):
-    bot = pyttsx3.init()
-    for text in text_to_speak.split('\n'):
-        if pause_flag.is_set():
-            while pause_flag.is_set():
-                time.sleep(1)
-        bot.say(text)
-        bot.runAndWait()
+def on_pause_button_click():
+    tts_controller.handle_pause()
 
-def main():
-    ppt_file_path = 'test.pptx'
-    extracted_text_result = extract_text_from_ppt(ppt_file_path)
-    print(extracted_text_result)
+def on_resume_button_click():
+    tts_controller.handle_resume()
 
-    # Create a threading.Event() to signal pause/play
-    pause_flag = threading.Event()
+def on_close():
+    tts_controller.stop()
+    root.destroy()
 
-    # Create threads
-    extraction_thread = threading.Thread(target=lambda: print(extracted_text_result))
-    speak_thread = threading.Thread(target=lambda: speak(extracted_text_result, pause_flag))
+ppt_file_path = 'test.pptx'
+extracted_text_result = extract_text_from_ppt(ppt_file_path)
 
-    # Start threads
-    extraction_thread.start()
-    speak_thread.start()
+root = tk.Tk()
+root.title("Presentation Reader")
 
-    while True:
-        user_input = input("Enter 'pause' to pause TTS, 'resume' to resume, or 'exit' to quit: ")
-        if user_input.lower() == 'pause':
-            pause_flag.set()
-            print("TTS paused")
-        elif user_input.lower() == 'resume':
-            pause_flag.clear()
-            print("TTS resumed")
-        elif user_input.lower() == 'exit':
-            break
-        else:
-            print("Invalid input. Please enter 'pause', 'resume', or 'exit'.")
+# Text area
+text_area = tk.Text(root, wrap="word", width=40, height=10)
+text_area.insert("1.0", extracted_text_result)
+text_area.config(state="disabled")
+text_area.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
 
-    # Wait for threads to finish
-    extraction_thread.join()
-    speak_thread.join()
+# Pause button
+pause_button = ttk.Button(root, text="Pause", command=on_pause_button_click)
+pause_button.grid(row=1, column=0, padx=5, pady=5)
 
-if __name__ == "__main__":
-    main()
+# Resume button
+resume_button = ttk.Button(root, text="Resume", command=on_resume_button_click)
+resume_button.grid(row=1, column=1, padx=5, pady=5)
+
+# Bind the close event to on_close function
+root.protocol("WM_DELETE_WINDOW", on_close)
+
+# Create TTS controller
+tts_controller = TTSController(extracted_text_result)
+tts_controller.start()
+
+root.mainloop()
