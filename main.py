@@ -1,45 +1,48 @@
 from pptx import Presentation
 import pyttsx3
-import threading
 import tkinter as tk
 from tkinter import ttk
+import threading
+import time
 
 class TTSController:
     def __init__(self, text_to_speak):
         self.text_to_speak = text_to_speak
-        self.pause_flag = threading.Event()
-        self.extraction_thread = None
+        self.pause_flag = False
+        self.exit_flag = False
         self.speak_thread = None
 
     def start(self):
-        self.extraction_thread = threading.Thread(target=lambda: print(self.text_to_speak))
-        self.speak_thread = threading.Thread(target=lambda: self._speak())
-
-        self.extraction_thread.start()
+        self.speak_thread = threading.Thread(target=self.speak)
         self.speak_thread.start()
 
-    def _speak(self):
+    def speak(self):
         bot = pyttsx3.init()
         for text in self.text_to_speak.split('\n'):
-            if self.pause_flag.is_set():
-                while self.pause_flag.is_set():
+            if self.pause_flag:
+                while self.pause_flag:
                     time.sleep(1)
             bot.say(text)
             bot.runAndWait()
 
-    def handle_pause(self):
-        self.pause_flag.set()
+            if self.exit_flag:
+                break
+
+    def pause(self):
+        self.pause_flag = True
         print("TTS paused")
 
-    def handle_resume(self):
-        self.pause_flag.clear()
+    def resume(self):
+        self.pause_flag = False
         print("TTS resumed")
 
     def stop(self):
-        if self.extraction_thread:
-            self.extraction_thread.join()
+        self.exit_flag = True
         if self.speak_thread:
             self.speak_thread.join()
+
+# Make tts_controller a global variable
+tts_controller = None
 
 def extract_text_from_ppt(ppt_file):
     presentation = Presentation(ppt_file)
@@ -49,43 +52,63 @@ def extract_text_from_ppt(ppt_file):
         for shape in slide.shapes:
             if hasattr(shape, "text"):
                 extracted_text += f"{shape.text}\n"
+    print(extracted_text)
     return extracted_text
 
 def on_pause_button_click():
-    tts_controller.handle_pause()
+    tts_controller.pause()
 
 def on_resume_button_click():
-    tts_controller.handle_resume()
+    tts_controller.resume()
+
+def on_stop_button_click():
+    print("Stop button clicked")
+    tts_controller.stop()
+    control.destroy()
 
 def on_close():
     tts_controller.stop()
-    root.destroy()
+    control.destroy()
 
-ppt_file_path = 'test.pptx'
-extracted_text_result = extract_text_from_ppt(ppt_file_path)
+def create_gui():
+    global tts_controller  # Ensure that tts_controller is recognized as a global variable
+    ppt_file_path = 'test.pptx'
+    extracted_text_result = extract_text_from_ppt(ppt_file_path)
 
-root = tk.Tk()
-root.title("Presentation Reader")
+    global control 
+    control = tk.Tk()
+    control.title("Presentation Reader")
 
-# Text area
-text_area = tk.Text(root, wrap="word", width=40, height=10)
-text_area.insert("1.0", extracted_text_result)
-text_area.config(state="disabled")
-text_area.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
+    # Text area
+    text_area = tk.Text(control, wrap="word", width=50, height=20)
+    text_area.insert("1.0", extracted_text_result)
+    text_area.config(state="disabled")
+    text_area.grid(row=0, column=0, padx=10, pady=10, columnspan=3,rowspan=15)
 
-# Pause button
-pause_button = ttk.Button(root, text="Pause", command=on_pause_button_click)
-pause_button.grid(row=1, column=0, padx=5, pady=5)
+    # Pause button
+    pause_button = ttk.Button(control, text="Pause", command=on_pause_button_click)
+    pause_button.grid(row=0, column=3)
 
-# Resume button
-resume_button = ttk.Button(root, text="Resume", command=on_resume_button_click)
-resume_button.grid(row=1, column=1, padx=5, pady=5)
+    # Resume button
+    resume_button = ttk.Button(control, text="Resume", command=on_resume_button_click)
+    resume_button.grid(row=1, column=3)
 
-# Bind the close event to on_close function
-root.protocol("WM_DELETE_WINDOW", on_close)
+    # Stop button
+    stop_button = ttk.Button(control, text="Exit", command=on_stop_button_click)
+    stop_button.grid(row=2, column=3)
 
-# Create TTS controller
-tts_controller = TTSController(extracted_text_result)
-tts_controller.start()
+    # Create TTS controller
+    tts_controller = TTSController(extracted_text_result)
+    tts_controller.start()
 
-root.mainloop()
+    # Bind the close event to on_close function
+    control.protocol("WM_DELETE_WINDOW", on_close)
+
+    control.mainloop()
+
+def main_gui():
+    root = tk.Tk()
+    root.title("Presentation Reader")
+    
+create_gui()
+

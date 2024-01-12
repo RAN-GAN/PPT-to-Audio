@@ -64,7 +64,7 @@ def on_resume_button_click():
 def on_stop_button_click():
     print("Stop button clicked")
     tts_controller.stop()
-    root.destroy()
+    root.after(100, root.destroy)
 
 
 def on_close():
@@ -104,6 +104,7 @@ def create_gui():
 
     # Bind the close event to on_close function
     root.protocol("WM_DELETE_WINDOW", on_close)
+    root.protocol()
 
     root.mainloop()
 
