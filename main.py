@@ -5,6 +5,8 @@ from tkinter import ttk
 import threading
 import time
 
+tts_controller = None
+
 class TTSController:
     def __init__(self, text_to_speak):
         self.text_to_speak = text_to_speak
@@ -41,8 +43,6 @@ class TTSController:
         if self.speak_thread:
             self.speak_thread.join()
 
-# Make tts_controller a global variable
-tts_controller = None
 
 def extract_text_from_ppt(ppt_file):
     presentation = Presentation(ppt_file)
@@ -70,45 +70,71 @@ def on_close():
     tts_controller.stop()
     control.destroy()
 
-def create_gui():
-    global tts_controller  # Ensure that tts_controller is recognized as a global variable
-    ppt_file_path = 'test.pptx'
-    extracted_text_result = extract_text_from_ppt(ppt_file_path)
+def on_back():
+    on_close()
+    main_gui()
 
+def create_gui():
+    global tts_controller
+    ppt_file_path = file_path.replace('"','')
+    extracted_text_result = extract_text_from_ppt(ppt_file_path)
+    
     global control 
     control = tk.Tk()
     control.title("Presentation Reader")
 
-    # Text area
     text_area = tk.Text(control, wrap="word", width=50, height=20)
     text_area.insert("1.0", extracted_text_result)
     text_area.config(state="disabled")
-    text_area.grid(row=0, column=0, padx=10, pady=10, columnspan=3,rowspan=15)
+    text_area.grid(row=0, column=0, padx=10, pady=10,rowspan=15, columnspan=3)
 
-    # Pause button
     pause_button = ttk.Button(control, text="Pause", command=on_pause_button_click)
     pause_button.grid(row=0, column=3)
 
-    # Resume button
     resume_button = ttk.Button(control, text="Resume", command=on_resume_button_click)
     resume_button.grid(row=1, column=3)
 
-    # Stop button
     stop_button = ttk.Button(control, text="Exit", command=on_stop_button_click)
     stop_button.grid(row=2, column=3)
 
-    # Create TTS controller
+    back = ttk.Button(control, text="Back", command=on_back)
+    back.grid(row=14, column=3)
+
     tts_controller = TTSController(extracted_text_result)
     tts_controller.start()
 
-    # Bind the close event to on_close function
     control.protocol("WM_DELETE_WINDOW", on_close)
 
     control.mainloop()
 
 def main_gui():
+
+    def next_window():
+        global file_path
+        file_path= file_location_text_area.get("1.0", "end-1c")
+        root.destroy()
+        create_gui()
+
+    global root 
     root = tk.Tk()
     root.title("Presentation Reader")
     
-create_gui()
+    instructions = "Welcome!\nThis program will read a .pptx file and extract the text from it.\nThe text will be converted into an audio which will be played .\n \nHow to use?\n \n1. Place the file in the directory\n2. Then run the program\n3. You will have buttons to pause and resume the audio, the audio will pause only after completing a sentence and when pressed stop the program will exit"
+    
+    text_area = tk.Text(root, wrap="word", width=50, height=20)
+    text_area.insert("1.0", instructions)
+    text_area.config(state="disabled")
+    text_area.grid(row=0, column=0, padx=10, pady=10, columnspan=3,rowspan=15)
 
+    file_location_ask_label = tk.Label(root, text="Enter the location of the file")
+    file_location_ask_label.grid(row=16, column=0, padx=10, pady=10, sticky="w") 
+
+    file_location_text_area = tk.Text(root, width=40, height=1)
+    file_location_text_area.grid(row=17, column=0, sticky="w",columnspan=2)
+    
+    continue_button = tk.Button(root,text="continue",command=next_window)
+    continue_button.grid(row=17,column=2,pady=10)
+    
+    root.mainloop()
+
+main_gui() 
