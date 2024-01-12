@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 import threading
 import time
+import os
 
 tts_controller = None
 
@@ -42,7 +43,6 @@ class TTSController:
         self.exit_flag = True
         if self.speak_thread:
             self.speak_thread.join()
-
 
 def extract_text_from_ppt(ppt_file):
     presentation = Presentation(ppt_file)
@@ -111,9 +111,11 @@ def main_gui():
 
     def next_window():
         global file_path
-        file_path= file_location_text_area.get("1.0", "end-1c")
-        root.destroy()
-        create_gui()
+        file_path = file_location_text_area.get("1.0", "end-1c")
+        if(os.path.exists(file_path)) and ".pptx" in file_path:
+            root.destroy()
+            create_gui()
+
 
     global root 
     root = tk.Tk()
