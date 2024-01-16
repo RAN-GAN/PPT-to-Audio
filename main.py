@@ -74,7 +74,7 @@ def on_back():
     on_close()
     main_gui()
 
-def controll_gui():
+def control_gui():
     global tts_controller
     ppt_file_path = file_path.replace('"','')
     extracted_text_result = extract_text_from_ppt(ppt_file_path)
@@ -120,7 +120,7 @@ def main_gui():
         file_path = file_location_text_area.get("1.0", "end-1c")
         if(os.path.exists(file_path) and ".pptx" in file_path):
             root.destroy()
-            controll_gui()
+            control_gui()
         else:
             file_location_invalid_label.grid(row=16, column=2, padx=10, pady=10, sticky="w")
 
