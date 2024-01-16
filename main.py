@@ -74,7 +74,7 @@ def on_back():
     on_close()
     main_gui()
 
-def create_gui():
+def controll_gui():
     global tts_controller
     ppt_file_path = file_path.replace('"','')
     extracted_text_result = extract_text_from_ppt(ppt_file_path)
@@ -83,25 +83,31 @@ def create_gui():
     control = tk.Tk()
     control.title("Presentation Reader")
 
+    def startBot():
+        tts_controller.start()
+
     text_area = tk.Text(control, wrap="word", width=50, height=20)
     text_area.insert("1.0", extracted_text_result)
     text_area.config(state="disabled")
     text_area.grid(row=0, column=0, padx=10, pady=10,rowspan=15, columnspan=3)
 
+    start_button = ttk.Button(control, text="Start", command=startBot)
+    start_button.grid(row=0, column=3)
+
+
     pause_button = ttk.Button(control, text="Pause", command=on_pause_button_click)
-    pause_button.grid(row=0, column=3)
+    pause_button.grid(row=1, column=3)
 
     resume_button = ttk.Button(control, text="Resume", command=on_resume_button_click)
-    resume_button.grid(row=1, column=3)
+    resume_button.grid(row=2, column=3)
 
     stop_button = ttk.Button(control, text="Exit", command=on_stop_button_click)
-    stop_button.grid(row=2, column=3)
+    stop_button.grid(row=3, column=3)
 
     back = ttk.Button(control, text="Back", command=on_back)
     back.grid(row=14, column=3)
 
     tts_controller = TTSController(extracted_text_result)
-    tts_controller.start()
 
     control.protocol("WM_DELETE_WINDOW", on_close)
 
@@ -112,9 +118,11 @@ def main_gui():
     def next_window():
         global file_path
         file_path = file_location_text_area.get("1.0", "end-1c")
-        if(os.path.exists(file_path)) and ".pptx" in file_path:
+        if(os.path.exists(file_path) and ".pptx" in file_path):
             root.destroy()
-            create_gui()
+            controll_gui()
+        else:
+            file_location_invalid_label.grid(row=16, column=2, padx=10, pady=10, sticky="w")
 
 
     global root 
@@ -131,8 +139,11 @@ def main_gui():
     file_location_ask_label = tk.Label(root, text="Enter the location of the file")
     file_location_ask_label.grid(row=16, column=0, padx=10, pady=10, sticky="w") 
 
+    file_location_invalid_label = tk.Label(root, text="The Pathis is Invalid",fg='red')
+     
+
     file_location_text_area = tk.Text(root, width=40, height=1)
-    file_location_text_area.grid(row=17, column=0, sticky="w",columnspan=2)
+    file_location_text_area.grid(row=17, column=0, sticky="w")
     
     continue_button = tk.Button(root,text="continue",command=next_window)
     continue_button.grid(row=17,column=2,pady=10)
